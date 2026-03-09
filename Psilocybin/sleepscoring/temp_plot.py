@@ -20,7 +20,7 @@ for ids, session_name in enumerate(sessions):
     sleep = SleepScoreIO(base_dir)
     brainstates = sleep.read_states(plot_states=False)
     plot_hypnogram(brainstates, ax=ax[ids], annotate=True)
-    ax[ids].set_xticks([0, 3600, 7200])
+    ax[ids].set_xticks([0, 3600, 7200, 10800, 14400])
     ax[ids].set_xlabel("Time (s)")
     ax[ids].axis("on")
     sns.despine(ax=ax[ids], left=True)
