@@ -14,9 +14,9 @@ psilocybin_dir = Path(r"D:\data\Nat\Psilocybin\Recording_Rats")
 alt_dir = Path(r"D:\data\Nat\Alternation\Recording_Rats")
 animal_name = "Finn"
 sessions = ["alternation", "psilocybin"]
-fig, ax = plt.subplots(1, 2, figsize=(11.3, 1.2))
+fig, ax = plt.subplots(1, 1, figsize=(11.3, 1.2))
 fig.suptitle("EMG Comparison")
-ax[0].set_title("Alternation vs Psilocybin")
+ax.set_title("Alternation vs Psilocybin")
 
 for ids, (base_dir, session_type) in enumerate(zip([alt_dir, psilocybin_dir], ["alternation*", "psilocybin"])):
     sess_dir = sorted((base_dir / animal_name).glob(f"*_{session_type}"))[0]
@@ -24,12 +24,12 @@ for ids, (base_dir, session_type) in enumerate(zip([alt_dir, psilocybin_dir], ["
     EMG = sleep.read_emg()
     print(f"min EMG={EMG.pEMG.min()}, max EMG={EMG.pEMG.max()}")
     emg_min, emg_max = emg_hist_lims[animal_name]
-    ax[0].hist(EMG['pEMG'], bins=np.linspace(emg_min, emg_max + 1 / nbins, nbins), label=session_type)
-    ax[0].set_xlabel("EMG Value")
-    ax[0].set_ylabel("Count")
-    sns.despine(ax=ax[ids])
+    ax.hist(EMG['pEMG'], bins=np.linspace(emg_min, emg_max + 1 / nbins, nbins), label=session_type)
+    ax.set_xlabel("EMG Value")
+    ax.set_ylabel("Count")
+    sns.despine(ax=ax)
 
-match_axis_lims(ax, "x")
-ax[0].legend()
+# match_axis_lims(ax, "x")
+ax.legend()
 plt.show()
 #fig.savefig(animal_dir / f"{animal_name}_hypnograms.pdf")
