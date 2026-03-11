@@ -7,16 +7,19 @@ from neuropy.utils.plot_util import match_axis_lims
 import seaborn as sns
 import numpy as np
 
-emg_hist_lims = {"Finn": [-0.16, 0.91]}
+emg_hist_lims = {"Finn": [-0.16, 0.91],
+                 "Rey": [-0.27, 0.83],
+                 "Rose": [-0.28, 1],
+                 "Finn2": [-.26, 0.98]}
 nbins = 40
 
 psilocybin_dir = Path(r"D:\data\Nat\Psilocybin\Recording_Rats")
 alt_dir = Path(r"D:\data\Nat\Alternation\Recording_Rats")
 animal_name = "Finn"
 sessions = ["alternation", "psilocybin"]
-fig, ax = plt.subplots(1, 1, figsize=(11.3, 1.2))
-fig.suptitle("EMG Comparison")
-ax.set_title("Alternation vs Psilocybin")
+fig, ax = plt.subplots(1, 1, figsize=(3.8, 1.9), layout="tight")
+# fig.suptitle("EMG Comparison")
+# ax.set_title("Alternation vs Psilocybin")
 
 for ids, (base_dir, session_type) in enumerate(zip([alt_dir, psilocybin_dir], ["alternation*", "psilocybin"])):
     sess_dir = sorted((base_dir / animal_name).glob(f"*_{session_type}"))[0]
@@ -24,12 +27,13 @@ for ids, (base_dir, session_type) in enumerate(zip([alt_dir, psilocybin_dir], ["
     EMG = sleep.read_emg()
     print(f"min EMG={EMG.pEMG.min()}, max EMG={EMG.pEMG.max()}")
     emg_min, emg_max = emg_hist_lims[animal_name]
-    ax.hist(EMG['pEMG'], bins=np.linspace(emg_min, emg_max + 1 / nbins, nbins), label=session_type)
-    ax.set_xlabel("EMG Value")
+    alpha = 0.3 if session_type == 'psilocybin' else 0.7
+    ax.hist(EMG['pEMG'], bins=np.linspace(emg_min, emg_max + 1 / nbins, nbins), label=session_type, alpha=alpha)
+    ax.set_xlabel("pEMG")
     ax.set_ylabel("Count")
     sns.despine(ax=ax)
 
 # match_axis_lims(ax, "x")
 ax.legend()
 plt.show()
-#fig.savefig(animal_dir / f"{animal_name}_hypnograms.pdf")
+fig.savefig(psilocybin_dir / f"{animal_name}EMGcomparison.pdf")
