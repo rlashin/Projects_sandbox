@@ -1,5 +1,7 @@
 from pathlib import Path
 import matplotlib.pyplot as plt
+plt.rcParams["pdf.fonttype"] = 42
+plt.rcParams["ps.fonttype"] = 42
 from Brainstates_ryan import emg_from_LFP
 from neuropy.io.sleepscoremasterio import SleepScoreIO
 from neuropy.plotting.epochs import plot_hypnogram
