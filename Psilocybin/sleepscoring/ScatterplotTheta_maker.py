@@ -3,8 +3,10 @@ import matplotlib.pyplot as plt
 plt.rcParams["pdf.fonttype"] = 42
 plt.rcParams["ps.fonttype"] = 42
 from Scatterplot_comp import SleepScoreMetricsIO
+from neuropy.io.sleepscoremasterio import SleepScoreIO
 import seaborn as sns
 import pandas as pd
+import matplotlib.patches as mpatches
 # Define directories and animal
 primary_dir = Path(r"D:\data\Nat\Psilocybin\Recording_Rats")
 secondary_dir = Path(r"D:\data\Nat\Alternation\Recording_Rats")
@@ -16,6 +18,11 @@ sessions = ["alternation*", "saline1", "psilocybin", "saline2"]
 titles = ["Alternation", "Saline1", "Psilocybin", "Saline2"]
 x_feature, y_feature = "theta", "EMG"
 base_dirs = [secondary_dir, primary_dir, primary_dir, primary_dir]  # alternation from alt_dir, others from psilo_dir
+
+thresh_dict = {"Finn": {"sw": 1.1333, "theta": 0.6968, "emg": 0.0695},
+               "Rose": {"sw": 1.0549, "theta": 0.48, "emg": 0.0466},
+               "Rey": {"sw": 1.122, "theta": 0.5784, "emg": 0.1068},
+               "Finn2": {"sw": 0.3964, "theta": 0.0967, "emg": 0.0732}}
 
 # Collect all data to compute global limits
 sess_dirs = [sorted((base_dir / animal_name).glob(f"*_{session_type}"))[0] for base_dir, session_type in zip(base_dirs, sessions)]
@@ -33,8 +40,25 @@ for idx, (base_dir, session_type, title) in enumerate(zip(base_dirs, sessions, t
     metrics_io = SleepScoreMetricsIO(sess_dir)
     metrics_df = metrics_io.read_metrics()
 
+    # Load sleep states
+    states_io = SleepScoreIO(sess_dir)
+    states_epochs = states_io.read_states(plot_states=False)
+
+    # Add sleepstate column to metrics_df
+    inside_bool, _, sleepstates = states_epochs.contains(metrics_df['timestamps'].values)
+    metrics_df['sleepstate'] = 'unknown'
+    metrics_df.loc[inside_bool, 'sleepstate'] = sleepstates
+    #Create Palette
+    palette = {
+    'active': 'blue',
+    'rem': 'red',
+    'nrem': 'green',
+    'quiet': 'yellow',
+    'QWakestate': 'yellow',
+    'unknown': 'grey',
+    }
     # Plot scatterplot: EMG vs broadband slow wave
-    sns.scatterplot(data=metrics_df, x=x_feature, y=y_feature, ax=ax[idx], alpha=0.8, s=1)
+    sns.scatterplot(data=metrics_df, x=x_feature, y=y_feature, ax=ax[idx], alpha=0.8, s=1, hue='sleepstate', palette=palette, legend=False)
     ax[idx].set_title(title)
     ax[idx].set_xlabel(x_feature.capitalize())
     ax[idx].set_ylabel(y_feature)
@@ -46,6 +70,15 @@ for idx, (base_dir, session_type, title) in enumerate(zip(base_dirs, sessions, t
     # Despine for cleaner look
     sns.despine(ax=ax[idx])
 
+    # Add threshold lines
+    ax[idx].axvline(x=thresh_dict[animal_name]['theta'], color='black', linestyle='--')
+    ax[idx].axhline(y=thresh_dict[animal_name]['emg'], color='black', linestyle='--')
+
+# Add custom legend
+legend_states = ['active', 'rem', 'nrem', 'quiet', 'unknown']
+patches = [mpatches.Patch(color=palette[state], label=state) for state in legend_states]
+fig.legend(handles=patches, loc='upper center', bbox_to_anchor=(0.5, 1.02), ncol=len(legend_states))
+
 # Save the figure
-fig.savefig(primary_dir / f"{animal_name}_scatterplot_Theta.pdf")
+#fig.savefig(primary_dir / f"{animal_name}_scatterplot_Theta.pdf")
 plt.show()
