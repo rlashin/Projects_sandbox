@@ -10,7 +10,7 @@ import matplotlib.patches as mpatches
 # Define directories and animal
 primary_dir = Path(r"D:\data\Nat\Psilocybin\Recording_Rats")
 secondary_dir = Path(r"D:\data\Nat\Alternation\Recording_Rats")
-animal_name = "Rose"
+animal_name = "Finn"
 
 # Create figure with four subplots side by side
 fig, ax = plt.subplots(1, 4, figsize=(16, 4), layout="tight")
@@ -18,10 +18,10 @@ sessions = ["alternation*", "saline1", "psilocybin", "saline2"]
 titles = ["Alternation", "Saline1", "Psilocybin", "Saline2"]
 base_dirs = [secondary_dir, primary_dir, primary_dir, primary_dir]
 
-thresh_dict = {"Finn": {"sw": 1.1333, "theta": 0.6968, "emg": 0.0695},
+thresh_dict = {"Finn": {"sw": 1.0212, "theta": 0.5943, "emg": 0.0796},
                "Rose": {"sw": 1.0549, "theta": 0.48, "emg": 0.0466},
-               "Rey": {"sw": 1.122, "theta": 0.5784, "emg": 0.1068},
-               "Finn2": {"sw": 0.3964, "theta": 0.0967, "emg": 0.0732}}
+               "Rey": {"sw": 1.0493, "theta": 0.5784, "emg": 0.1068},
+               "Finn2": {"sw": 0.7449, "theta": 0.4994, "emg": 0.1254}}
 
 # Collect all data to compute global limits
 sess_dirs = [sorted((base_dir / animal_name).glob(f"*_{session_type}"))[0] for base_dir, session_type in zip(base_dirs, sessions)]
@@ -58,7 +58,7 @@ for idx, (base_dir, session_type, title) in enumerate(zip(base_dirs, sessions, t
     }
 
     # Plot scatterplot: EMG vs broadband slow wave
-    sns.scatterplot(data=metrics_df, x='slowwave', y='EMG', ax=ax[idx], alpha=0.8, s=1)
+    sns.scatterplot(data=metrics_df, x='slowwave', y='EMG', ax=ax[idx], alpha=0.8, s=1, hue='sleepstate', palette=palette, legend=False)
     ax[idx].set_title(title)
     ax[idx].set_xlabel("Broadband Slow Wave")
     ax[idx].set_ylabel("EMG")
