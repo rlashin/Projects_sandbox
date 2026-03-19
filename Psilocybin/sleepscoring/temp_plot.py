@@ -9,7 +9,7 @@ import seaborn as sns
 
 animal_dir = Path(r"D:\data\Nat\Psilocybin\Recording_Rats\Finn")
 sessions = ["saline1", "psilocybin", "saline2"]
-animal_name = "Finn"
+animal_name = "Rey"
 fig, ax = plt.subplots(1, 3, figsize=(11.3, 1.2))
 fig.suptitle(animal_name)
 ax[0].set_title("Saline1")
@@ -22,7 +22,7 @@ for ids, session_name in enumerate(sessions):
     sleep = SleepScoreIO(base_dir)
     brainstates = sleep.read_states(plot_states=False)
     plot_hypnogram(brainstates, ax=ax[ids], annotate=True)
-    ax[ids].set_xticks([0, 3600, 7200, 10800, 14400])
+    ax[ids].set_xticks([0, 3600, 7200])
     ax[ids].set_xlabel("Time (s)")
     ax[ids].axis("on")
     sns.despine(ax=ax[ids], left=True)
