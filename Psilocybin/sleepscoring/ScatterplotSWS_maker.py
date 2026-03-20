@@ -2,6 +2,8 @@ from pathlib import Path
 import matplotlib.pyplot as plt
 plt.rcParams["pdf.fonttype"] = 42
 plt.rcParams["ps.fonttype"] = 42
+plt.rcParams['font.family'] = 'sans-serif'
+plt.rcParams['font.sans-serif'] = ['Arial']
 from Scatterplot_comp import SleepScoreMetricsIO
 from neuropy.io.sleepscoremasterio import SleepScoreIO
 import seaborn as sns
@@ -13,7 +15,7 @@ secondary_dir = Path(r"D:\data\Nat\Alternation\Recording_Rats")
 animal_name = "Finn"
 
 # Create figure with four subplots side by side
-fig, ax = plt.subplots(1, 4, figsize=(16, 4), layout="tight")
+fig, ax = plt.subplots(1, 4, figsize=(8, 2), layout="tight")
 sessions = ["alternation*", "saline1", "psilocybin", "saline2"]
 titles = ["Alternation", "Saline1", "Psilocybin", "Saline2"]
 base_dirs = [secondary_dir, primary_dir, primary_dir, primary_dir]
@@ -36,12 +38,13 @@ for idx, (base_dir, session_type, title) in enumerate(zip(base_dirs, sessions, t
     sess_dir = sorted((base_dir / animal_name).glob(f"*_{session_type}"))[0]
 
     # Load metrics data
-    metrics_io = SleepScoreMetricsIO(sess_dir)
-    metrics_df = metrics_io.read_metrics()
+    # metrics_io = SleepScoreMetricsIO(sess_dir)
+    # metrics_df = metrics_io.read_metrics()
 
-    # Load sleep states
+    # Load sleep states (and metrics data)
     states_io = SleepScoreIO(sess_dir)
     states_epochs = states_io.read_states(plot_states=False)
+    metrics_df = states_io.read_metrics()
 
     # Add sleepstate column to metrics_df
     inside_bool, _, sleepstates = states_epochs.contains(metrics_df['timestamps'].values)
