@@ -2,6 +2,8 @@ from pathlib import Path
 import matplotlib.pyplot as plt
 plt.rcParams["pdf.fonttype"] = 42
 plt.rcParams["ps.fonttype"] = 42
+plt.rcParams['font.family'] = 'sans-serif'
+plt.rcParams['font.sans-serif'] = ['Arial']
 from neuropy.io.sleepscoremasterio import SleepScoreIO
 from neuropy.plotting.epochs import plot_hypnogram
 from neuropy.utils.plot_util import match_axis_lims
