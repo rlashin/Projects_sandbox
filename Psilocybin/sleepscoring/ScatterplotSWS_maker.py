@@ -15,7 +15,7 @@ secondary_dir = Path(r"D:\data\Nat\Alternation\Recording_Rats")
 animal_name = "Finn"
 
 # Create figure with four subplots side by side
-fig, ax = plt.subplots(1, 4, figsize=(8, 2), layout="tight")
+fig, ax = plt.subplots(1, 4, figsize=(10, 2.5), layout="tight")
 sessions = ["alternation*", "saline1", "psilocybin", "saline2"]
 titles = ["Alternation", "Saline1", "Psilocybin", "Saline2"]
 base_dirs = [secondary_dir, primary_dir, primary_dir, primary_dir]
@@ -61,7 +61,7 @@ for idx, (base_dir, session_type, title) in enumerate(zip(base_dirs, sessions, t
     }
 
     # Plot scatterplot: EMG vs broadband slow wave
-    sns.scatterplot(data=metrics_df, x='slowwave', y='EMG', ax=ax[idx], alpha=0.8, s=1, hue='sleepstate', palette=palette, legend=False)
+    sns.scatterplot(data=metrics_df, x='slowwave', y='EMG', ax=ax[idx], rasterized=True, alpha=0.8, s=1, hue='sleepstate', palette=palette, legend=False)
     ax[idx].set_title(title)
     ax[idx].set_xlabel("Broadband Slow Wave")
     ax[idx].set_ylabel("EMG")

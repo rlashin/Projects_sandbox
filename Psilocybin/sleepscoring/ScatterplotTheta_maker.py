@@ -61,7 +61,7 @@ for idx, (base_dir, session_type, title) in enumerate(zip(base_dirs, sessions, t
     'unknown': 'grey',
     }
     # Plot scatterplot: EMG vs broadband slow wave
-    sns.scatterplot(data=metrics_df, x=x_feature, y=y_feature, ax=ax[idx], alpha=0.8, s=1, hue='sleepstate', palette=palette, legend=False)
+    sns.scatterplot(data=metrics_df, x=x_feature, y=y_feature, ax=ax[idx], rasterized=True, alpha=0.8, s=1, hue='sleepstate', palette=palette, legend=False)
     ax[idx].set_title(title)
     ax[idx].set_xlabel(x_feature.capitalize())
     ax[idx].set_ylabel(y_feature)
