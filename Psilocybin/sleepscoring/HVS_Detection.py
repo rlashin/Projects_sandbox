@@ -1,22 +1,33 @@
 import numpy as np
 from pathlib import Path
+import matplotlib.pyplot as plt
 plt.rcParams["pdf.fonttype"] = 42
 plt.rcParams["ps.fonttype"] = 42
 plt.rcParams['font.family'] = 'sans-serif'
 plt.rcParams['font.sans-serif'] = ['Arial']
-import matplotlib.pyplot as plt
 from neuropy.analyses.oscillations import _detect_freq_band_epochs
 from neuropy.core import Signal, Epoch, ProbeGroup
 from neuropy.utils import signal_process
+from neuropy.io.neuroscopeio import NeuroscopeIO
+from neuropy.io.binarysignalio import BinarysignalIO
 
-animal_dir = Path(r"D:\data\Nat\Psilocybin\Recording_Rats\Finn")
+chan_dict = {
+    "Rey":   {"Saline1": 21, "Psilocybin": 21, "Saline2": 21},
+    "Finn":  {"Saline1": 27, "Psilocybin": 27, "Saline2": 27},
+    "Rose":  {"Saline1": 26, "Psilocybin": 26, "Saline2": 26},
+    "Finn2": {"Saline1": 4,  "Psilocybin": 4,  "Saline2": 4}
+}
+
+animal_dir = Path(r"D:\data\Nat\Psilocybin\Recording_Rats\Finn\2022_02_17_psilocybin")
 sessions = ["saline1", "psilocybin", "saline2"]
-animal_name = "Finn2"
+animal_name = "Finn"
 fig, ax = plt.subplots(1, 3, figsize=(11.3, 1.2))
 fig.suptitle(animal_name)
 ax[0].set_title("Saline1")
 ax[1].set_title("Psilocybin")
 ax[2].set_title("Saline2")
+
+xml_file = sorted(animal_dir.glob("*.xml"))[0]
 
 def detect_hvs_epochs(
     signal: Signal,
@@ -24,12 +35,11 @@ def detect_hvs_epochs(
     freq_band=(12, 18),  # HVS frequency band based on Buzcode NotchHVS
     thresh=(2, None),  # Threshold for high power detection
     edge_cutoff=1.0,  # Edge cutoff for z-scored power
-    mindur=0.35,
-    maxdur=4,
-    mergedist=0.05,
+    mindur=0.20,
+    maxdur=8,
+    mergedist=0.10,
     sigma=0.125,
     ignore_epochs: Epoch = None,
-    basepath: str = r"D:\data\Nat\Psilocybin\Recording_Rats\Finn\2022_02_17_psilocybin",
 ):
     """
     Detect high voltage spindle (HVS) epochs.
@@ -41,26 +51,24 @@ def detect_hvs_epochs(
     ----------
     signal : Signal
         LFP signal object
-    probegroup : ProbeGroup, optional
+    probegroup
         Probe group for channel selection
-    freq_band : tuple, optional
+    freq_band :
         Frequency band for HVS detection (default 12-18 Hz)
-    thresh : tuple, optional
+    thresh :
         Low and high threshold for detection (default (2, None))
     edge_cutoff : float, optional
         Edge cutoff for z-scored power (default 1.0)
-    mindur : float, optional
+    mindur :
         Minimum duration in seconds
-    maxdur : float, optional
+    maxdur : float,
         Maximum duration in seconds
-    mergedist : float, optional
+    mergedist : float,
         Merge distance for overlapping epochs
-    sigma : float, optional
+    sigma : optional
         Gaussian smoothing sigma
-    ignore_epochs : Epoch, optional
+    ignore_epochs : Epoch,
         Epochs to ignore during detection
-    basepath : str, optional
-        Path to the session for logging purposes
 
     Returns
     -------
@@ -68,8 +76,6 @@ def detect_hvs_epochs(
         Detected HVS epochs
     """
     print("Starting HVS detection")
-    if basepath:
-        print(f"Processing session: {basepath}")
     print(f"Signal sampling rate: {signal.sampling_rate}, channels: {signal.channel_id}")
 
     if probegroup is None:
@@ -140,8 +146,8 @@ def plot_hvs_epochs(epochs, ax=None, color='red', alpha=0.5, label='HVS'):
         ax.axvspan(start, stop, alpha=alpha, color=color, label=label if start == epochs.as_array()[0][0] else "")
 
     ax.set_xlabel('Time (s)')
-    ax.set_ylabel('HVS Presence')
-    ax.set_title('High Voltage Spindles Over Time')
+    ax.set_ylabel('High Voltage Spindles (mV)')
+    ax.set_title('High Voltage Spindles over Time')
     ax.set_ylim(0, 1)
     ax.set_yticks([])
 
@@ -150,11 +156,25 @@ def plot_hvs_epochs(epochs, ax=None, color='red', alpha=0.5, label='HVS'):
 
     return ax
 
-
-
-signal = Signal(traces=np.random.randn(1, 100000), sampling_rate=__, channel_id=[0])
+signal = Signal(traces=np.random.randn(1, 100000), sampling_rate=1250, channel_id=[0])
 hvs_epochs = detect_hvs_epochs(signal)
 # plot_hvs_epochs(hvs_epochs)
 # plt.show()
 plot_hvs_epochs(hvs_epochs)
+
+recinfo = NeuroscopeIO(xml_file)
+eeg_file = recinfo.eeg_filename
+
+# Load signal from binary file
+pyr_channel = chan_dict[animal_name]["Psilocybin"]
+# loader = BinarysignalIO(r'D:\data\Nat\Psilocybin\Recording_Rats\Finn\2022_02_17_psilocybin\2022_02_17_psilocybin.eeg', dtype="int16", n_channels=35, sampling_rate=1250)
+# signal = loader.get_signal(channel_indx=pyr_channel)
+eegfile = BinarysignalIO(recinfo.eeg_filename, dtype="int16", n_channels=recinfo.n_channels, sampling_rate=recinfo.eeg_sampling_rate)
+signal = eegfile.get_signal(channel_indx=pyr_channel)
+
+hvs_epochs = detect_hvs_epochs(signal)
+
+plot_hvs_epochs(hvs_epochs)
 plt.show()
+
+recinfo.write_epochs(hvs_epochs)
