@@ -1,10 +1,12 @@
 import numpy as np
 from pathlib import Path
 import matplotlib.pyplot as plt
+
 plt.rcParams["pdf.fonttype"] = 42
 plt.rcParams["ps.fonttype"] = 42
 plt.rcParams['font.family'] = 'sans-serif'
 plt.rcParams['font.sans-serif'] = ['Arial']
+import scipy.io as sio
 from neuropy.analyses.oscillations import _detect_freq_band_epochs
 from neuropy.core import Signal, Epoch, ProbeGroup
 from neuropy.utils import signal_process
@@ -19,61 +21,83 @@ chan_dict = {
 }
 
 animal_dir = Path(r"D:\data\Nat\Psilocybin\Recording_Rats\Finn\2022_02_17_psilocybin")
-sessions = ["saline1", "psilocybin", "saline2"]
+# sessions = ["saline1", "psilocybin", "saline2"]
 animal_name = "Finn"
-fig, ax = plt.subplots(1, 3, figsize=(11.3, 1.2))
-fig.suptitle(animal_name)
-ax[0].set_title("Saline1")
-ax[1].set_title("Psilocybin")
-ax[2].set_title("Saline2")
+# fig, ax = plt.subplots(1, 3, figsize=(11.3, 1.2))
+# fig.suptitle(animal_name)
+# ax[0].set_title("Saline1")
+# ax[1].set_title("Psilocybin")
+# ax[2].set_title("Saline2")
 
 xml_file = sorted(animal_dir.glob("*.xml"))[0]
+
+def get_good_times(basedir):
+    basedir = Path(basedir)
+    files = sorted(basedir.glob("*.SleepState.states.mat"))
+
+    assert len(files) == 1, f"1 state file expected, f{len(files)} files found"
+    file = files[0]
+
+    states_from_mat = sio.loadmat(file, simplify_cells=True)
+    good_times = states_from_mat['SleepState']['detectorinfo']['detectionparms']['SleepScoreMetrics']['t_clus']
+
+    return good_times
 
 def detect_hvs_epochs(
     signal: Signal,
     probegroup: ProbeGroup = None,
-    freq_band=(12, 18),  # HVS frequency band based on Buzcode NotchHVS
-    thresh=(2, None),  # Threshold for high power detection
+    freq_band=(10, 20),  # Spindle frequency band
+    freq_band2=(4, 6),  # Low frequency band for HVS intersection
+    thresh=(2, None),  # Threshold for spindle detection
+    thresh2=(7, None),  # Threshold for low band HVS detection
     edge_cutoff=1.0,  # Edge cutoff for z-scored power
     mindur=0.20,
-    maxdur=8,
+    maxdur=3,
     mergedist=0.10,
     sigma=0.125,
     ignore_epochs: Epoch = None,
+    basedir = None,
 ):
     """
     Detect high voltage spindle (HVS) epochs.
 
-    HVS are detected in the 12-18 Hz band,
-    which is the frequency range notched out in Buzzcode when NotchHVS=true.
+    HVS are defined as spindles that overlap between two frequency bands:
+    - High frequency band (default 10-20 Hz) with threshold 2 SD
+    - Low frequency band (default 6-9 Hz) with threshold 7 SD
+
+    Based on Buzsaki et al., 1988 and paper protocols.
 
     Parameters
     ----------
     signal : Signal
         LFP signal object
-    probegroup
+    probegroup : ProbeGroup, optional
         Probe group for channel selection
-    freq_band :
-        Frequency band for HVS detection (default 12-18 Hz)
-    thresh :
-        Low and high threshold for detection (default (2, None))
+    freq_band : tuple
+        High frequency band for spindle detection (default (10, 20))
+    freq_band2 : tuple
+        Low frequency band for HVS intersection (default (6, 9))
+    thresh : tuple
+        Threshold for high frequency band detection (default (2, None))
+    thresh2 : tuple
+        Threshold for low frequency band detection (default (7, None))
     edge_cutoff : float, optional
         Edge cutoff for z-scored power (default 1.0)
-    mindur :
-        Minimum duration in seconds
-    maxdur : float,
-        Maximum duration in seconds
-    mergedist : float,
-        Merge distance for overlapping epochs
-    sigma : optional
-        Gaussian smoothing sigma
-    ignore_epochs : Epoch,
+    mindur : float
+        Minimum duration in seconds (default 0.20)
+    maxdur : float
+        Maximum duration in seconds (default 8)
+    mergedist : float
+        Merge distance for overlapping epochs (default 0.10)
+    sigma : float, optional
+        Gaussian smoothing sigma (default 0.125)
+    ignore_epochs : Epoch, optional
         Epochs to ignore during detection
 
     Returns
     -------
     Epoch
-        Detected HVS epochs
+        Detected HVS epochs (intersection of high and low band detections)
     """
     print("Starting HVS detection")
     print(f"Signal sampling rate: {signal.sampling_rate}, channels: {signal.channel_id}")
@@ -94,12 +118,26 @@ def detect_hvs_epochs(
 
     print(f"Selected channel for HVS: {selected_chans}")
 
+    # Handle ignore epochs and bad times from SleepScoreMaster
+    # if basedir is not None:
+    #     good_times = get_good_times(basedir)
+    #     bad_times_bool = np.ones(len(signal.time), dtype=bool)
+    #     good_indices = np.searchsorted(signal.time, good_times)
+    #     good_indices = good_indices[good_indices < len(signal.time)]
+    #     bad_times_bool[good_indices] = False
+    #     bad_epochs = Epoch.from_boolean_array(bad_times_bool, signal.time)
+    #     if ignore_epochs is not None:
+    #         ignore_epochs = ignore_epochs + bad_epochs
+    #     else:
+    #         ignore_epochs = bad_epochs
+
     if ignore_epochs is not None:
         ignore_times = ignore_epochs.shift(-signal.t_start).as_array()
     else:
         ignore_times = None
 
-    epochs = _detect_freq_band_epochs(
+    # Detect spindles in high frequency band (10-20 Hz)
+    epochs_high = _detect_freq_band_epochs(
         signals=traces,
         freq_band=freq_band,
         thresh=thresh,
@@ -111,9 +149,35 @@ def detect_hvs_epochs(
         sigma=sigma,
         ignore_times=ignore_times,
     )
-    epochs = epochs.shift(dt=signal.t_start)
-    epochs.metadata = dict(channels=selected_chans, freq_band=freq_band)
-    print(f"Detected {len(epochs)} HVS epochs.")
+    epochs_high = epochs_high.shift(dt=signal.t_start)
+
+    # Detect events in low frequency band (6-9 Hz) with higher threshold
+    epochs_low = _detect_freq_band_epochs(
+        signals=traces,
+        freq_band=freq_band2,
+        thresh=thresh2,
+        edge_cutoff=edge_cutoff,
+        mindur=mindur,
+        maxdur=maxdur,
+        mergedist=mergedist,
+        fs=signal.sampling_rate,
+        sigma=sigma,
+        ignore_times=ignore_times,
+    )
+    epochs_low = epochs_low.shift(dt=signal.t_start)
+
+    # Find intersection of the two detections
+    if len(epochs_high) == 0 or len(epochs_low) == 0:
+        epochs = Epoch.from_array([], [], [])  # Empty epoch if either detection has no events
+    else:
+        res = 1 / signal.sampling_rate  # time resolution
+        t_start = np.min((epochs_high.starts.min(), epochs_low.starts.min()))
+        t_stop = np.max((epochs_high.stops.max(), epochs_low.stops.max()))
+        times, bool1 = epochs_high.to_point_process(t_start, t_stop, bin_size=res)
+        _, bool2 = epochs_low.to_point_process(t_start, t_stop, bin_size=res)
+        epochs = Epoch.from_boolean_array(np.bitwise_and(bool1, bool2), times)
+    epochs.metadata = dict(channels=selected_chans, freq_band=freq_band, freq_band2=freq_band2)
+    print(f"Detected {len(epochs_high)} high-band spindles, {len(epochs_low)} low-band events, {len(epochs)} HVS epochs after intersection.")
     return epochs
 
 
@@ -172,9 +236,12 @@ pyr_channel = chan_dict[animal_name]["Psilocybin"]
 eegfile = BinarysignalIO(recinfo.eeg_filename, dtype="int16", n_channels=recinfo.n_channels, sampling_rate=recinfo.eeg_sampling_rate)
 signal = eegfile.get_signal(channel_indx=pyr_channel)
 
-hvs_epochs = detect_hvs_epochs(signal)
+# Load in artifact.npy file for each session as "art_epochs"
+art_epochs = Epoch(epochs=None, file=sorted(animal_dir.glob("*.artifact.npy"))[0])
+print(art_epochs.n_epochs)
+hvs_epochs = detect_hvs_epochs(signal, ignore_epochs=art_epochs)
 
 plot_hvs_epochs(hvs_epochs)
 plt.show()
 
-recinfo.write_epochs(hvs_epochs)
+recinfo.write_epochs(hvs_epochs, 'hvs')
