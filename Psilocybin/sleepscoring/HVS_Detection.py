@@ -20,9 +20,9 @@ chan_dict = {
     "Finn2": {"Saline1": 4,  "Psilocybin": 4,  "Saline2": 4}
 }
 
-animal_dir = Path(r"D:\data\Nat\Psilocybin\Recording_Rats\Finn\2022_02_17_psilocybin")
+animal_dir = Path(r"D:\data\Nat\Alternation\Recording_Rats\Rey\2022_05_23_alternation4")
 # sessions = ["saline1", "psilocybin", "saline2"]
-animal_name = "Finn"
+animal_name = "Rose"
 # fig, ax = plt.subplots(1, 3, figsize=(11.3, 1.2))
 # fig.suptitle(animal_name)
 # ax[0].set_title("Saline1")
@@ -47,9 +47,9 @@ def detect_hvs_epochs(
     signal: Signal,
     probegroup: ProbeGroup = None,
     freq_band=(10, 20),  # Spindle frequency band
-    freq_band2=(4, 6),  # Low frequency band for HVS intersection
+    freq_band2=(4, 9),  # Low frequency band for HVS intersection
     thresh=(2, None),  # Threshold for spindle detection
-    thresh2=(7, None),  # Threshold for low band HVS detection
+    thresh2=(4, None),  # Threshold for low band HVS detection
     edge_cutoff=1.0,  # Edge cutoff for z-scored power
     mindur=0.20,
     maxdur=3,
@@ -63,7 +63,7 @@ def detect_hvs_epochs(
 
     HVS are defined as spindles that overlap between two frequency bands:
     - High frequency band (default 10-20 Hz) with threshold 2 SD
-    - Low frequency band (default 6-9 Hz) with threshold 7 SD
+    - Low frequency band (default 4-9 Hz) with threshold _ SD
 
     Based on Buzsaki et al., 1988 and paper protocols.
 
@@ -151,7 +151,7 @@ def detect_hvs_epochs(
     )
     epochs_high = epochs_high.shift(dt=signal.t_start)
 
-    # Detect events in low frequency band (6-9 Hz) with higher threshold
+    # Detect events in low frequency band (4-9 Hz) with higher threshold
     epochs_low = _detect_freq_band_epochs(
         signals=traces,
         freq_band=freq_band2,
@@ -220,12 +220,13 @@ def plot_hvs_epochs(epochs, ax=None, color='red', alpha=0.5, label='HVS'):
 
     return ax
 
-signal = Signal(traces=np.random.randn(1, 100000), sampling_rate=1250, channel_id=[0])
-hvs_epochs = detect_hvs_epochs(signal)
+# signal = Signal(traces=np.random.randn(1, 100000), sampling_rate=1250, channel_id=[0])
+# hvs_epochs = detect_hvs_epochs(signal)
 # plot_hvs_epochs(hvs_epochs)
 # plt.show()
-plot_hvs_epochs(hvs_epochs)
+# plot_hvs_epochs(hvs_epochs)
 
+thresh2 = (4, None)
 recinfo = NeuroscopeIO(xml_file)
 eeg_file = recinfo.eeg_filename
 
@@ -238,10 +239,10 @@ signal = eegfile.get_signal(channel_indx=pyr_channel)
 
 # Load in artifact.npy file for each session as "art_epochs"
 art_epochs = Epoch(epochs=None, file=sorted(animal_dir.glob("*.artifact.npy"))[0])
-print(art_epochs.n_epochs)
-hvs_epochs = detect_hvs_epochs(signal, ignore_epochs=art_epochs)
+hvs_epochs = detect_hvs_epochs(signal, ignore_epochs=art_epochs, thresh2=thresh2)
+recinfo.write_epochs(hvs_epochs, f'hv{thresh2[0]}')
 
 plot_hvs_epochs(hvs_epochs)
 plt.show()
 
-recinfo.write_epochs(hvs_epochs, 'hvs')
+
