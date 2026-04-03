@@ -1,0 +1,85 @@
+import pandas as pd
+import seaborn as sns
+import matplotlib.pyplot as plt
+from pathlib import Path
+from neuropy.io.neuroscopeio import NeuroscopeIO
+
+# Channel dictionary from HVS_Detection.py
+chan_dict = {
+    "Rey":   {"Saline1": 21, "Psilocybin": 21, "Saline2": 21},
+    "Finn":  {"Saline1": 27, "Psilocybin": 27, "Saline2": 27},
+    "Rose":  {"Saline1": 26, "Psilocybin": 26, "Saline2": 26},
+    "Finn2": {"Saline1": 4,  "Psilocybin": 4,  "Saline2": 4}
+}
+
+# Date dictionary - UPDATE THESE FOR EACH ANIMAL AS NEEDED
+date_dict = {
+    "Rey": {
+        "Saline1": "2022_06_01",
+        "Psilocybin": "2022_06_02",
+        "Saline2": "2022_06_03"
+    },
+    "Finn": {
+        "Saline1": "2022_02_15",
+        "Psilocybin": "2022_02_17",
+        "Saline2": "2022_02_18"
+    },
+    "Rose": {
+        "Saline1": "2022_08_09",
+        "Psilocybin": "2022_08_10",
+        "Saline2": "2022_08_11"
+    },
+    "Finn2": {
+        "Saline1": "2023_05_24",
+        "Psilocybin": "2023_05_25",
+        "Saline2": "2023_05_26"
+    }
+}
+
+# List of animals and sessions
+animals = ["Rey", "Finn", "Rose", "Finn2"]
+sessions = ["Saline1", "Psilocybin", "Saline2"]
+
+# Collect data
+data = []
+for animal in animals:
+    for session in sessions:
+        date = date_dict[animal][session]
+        session_lower = session.lower()
+        base_path = rf"D:\data\Nat\Psilocybin\Recording_Rats\{animal}\{date}_{session_lower}"
+
+        # Find HVS epochs file using glob
+        base_dir = Path(base_path)
+        evt_files = sorted(base_dir.glob("hv*.evt"))
+        if not evt_files:
+            print(f"Warning: No hv*.evt files found in {base_path}")
+            continue
+        evt_file = evt_files[0]  # Use the first hv*.evt file found
+
+        # Load HVS epochs
+        hvs_epochs = NeuroscopeIO.event_to_epochs(evt_file)
+
+        # Filter to first hour (0-3600 seconds)
+        hvs_first_hour = hvs_epochs.time_slice(0, 3600)
+
+        # Sum durations
+        total_hvs_time = hvs_first_hour.durations.sum()
+
+        # Append to data
+        data.append({
+            "animal": animal,
+            "session": session_lower,
+            "total_hvs_time": total_hvs_time
+        })
+
+# Create DataFrame
+df = pd.DataFrame(data)
+
+# Plot using seaborn stripplot
+plt.figure(figsize=(10, 6))
+sns.stripplot(data=df, x="session", y="total_hvs_time", hue="animal", dodge=True)
+plt.title("Total HVS Time in First Hour Post-Injection")
+plt.xlabel("Session")
+plt.ylabel("Total HVS Time (seconds)")
+plt.legend(title="Animal")
+plt.show()
