@@ -8,6 +8,9 @@ if "kinsky" in getpass.getuser():
         base_dir = Path("/Users/nkinsky/Documents/UM/Working/Psilocybin/Recording_Rats")
     elif environ["HOSTNAME"] == "lnx00004":
         base_dir = Path("/data3/Psilocybin/Recording_Rats")
+
+elif "rlashin" in getpass.getuser():
+    base_dir = Path(r"D:\data\Nat\Psilocybin\Recording_Rats")
 else:
     assert False, "Base directory not yet set for users other than nkinsky"
 
