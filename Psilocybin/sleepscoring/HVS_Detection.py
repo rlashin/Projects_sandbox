@@ -7,29 +7,13 @@ plt.rcParams["ps.fonttype"] = 42
 plt.rcParams['font.family'] = 'sans-serif'
 plt.rcParams['font.sans-serif'] = ['Arial']
 import scipy.io as sio
-from neuropy.analyses.oscillations import _detect_freq_band_epochs
+from neuropy.analyses.oscillations import _detect_freq_band_epochs, get_bandpass_power
 from neuropy.core import Signal, Epoch, ProbeGroup
 from neuropy.utils import signal_process
 from neuropy.io.neuroscopeio import NeuroscopeIO
 from neuropy.io.binarysignalio import BinarysignalIO
 
-chan_dict = {
-    "Rey":   {"Saline1": 21, "Psilocybin": 21, "Saline2": 21},
-    "Finn":  {"Saline1": 27, "Psilocybin": 27, "Saline2": 27},
-    "Rose":  {"Saline1": 26, "Psilocybin": 26, "Saline2": 26},
-    "Finn2": {"Saline1": 4,  "Psilocybin": 4,  "Saline2": 4}
-}
-
-animal_dir = Path(r"D:\data\Nat\Alternation\Recording_Rats\Rey\2022_05_23_alternation4")
-# sessions = ["saline1", "psilocybin", "saline2"]
-animal_name = "Rose"
-# fig, ax = plt.subplots(1, 3, figsize=(11.3, 1.2))
-# fig.suptitle(animal_name)
-# ax[0].set_title("Saline1")
-# ax[1].set_title("Psilocybin")
-# ax[2].set_title("Saline2")
-
-xml_file = sorted(animal_dir.glob("*.xml"))[0]
+from Psilocybin import subjects
 
 def get_good_times(basedir):
     basedir = Path(basedir)
@@ -49,14 +33,16 @@ def detect_hvs_epochs(
     freq_band=(10, 20),  # Spindle frequency band
     freq_band2=(4, 9),  # Low frequency band for HVS intersection
     thresh=(2, None),  # Threshold for spindle detection
-    thresh2=(4, None),  # Threshold for low band HVS detection
+    thresh2=(3, None),  # Threshold for low band HVS detection
     edge_cutoff=1.0,  # Edge cutoff for z-scored power
     mindur=0.20,
-    maxdur=3,
+    maxdur=20,
     mergedist=0.10,
     sigma=0.125,
     ignore_epochs: Epoch = None,
     basedir = None,
+    custom_z_params_low=None,
+    custom_z_params_high=None,
 ):
     """
     Detect high voltage spindle (HVS) epochs.
@@ -131,12 +117,13 @@ def detect_hvs_epochs(
     #     else:
     #         ignore_epochs = bad_epochs
 
-    if ignore_epochs is not None:
+    if ignore_epochs is not None and ignore_epochs.n_epochs > 0:
         ignore_times = ignore_epochs.shift(-signal.t_start).as_array()
     else:
         ignore_times = None
 
     # Detect spindles in high frequency band (10-20 Hz)
+    print(f"Detecing {freq_band[0]}-{freq_band[1]} Hz events")
     epochs_high = _detect_freq_band_epochs(
         signals=traces,
         freq_band=freq_band,
@@ -148,10 +135,12 @@ def detect_hvs_epochs(
         fs=signal.sampling_rate,
         sigma=sigma,
         ignore_times=ignore_times,
+        custom_z_params=custom_z_params_high if custom_z_params_high is not None and custom_z_params_high[1] is not None else None,
     )
     epochs_high = epochs_high.shift(dt=signal.t_start)
 
     # Detect events in low frequency band (4-9 Hz) with higher threshold
+    print(f"\nDetecting {freq_band2[0]}-{freq_band2[1]} Hz events")
     epochs_low = _detect_freq_band_epochs(
         signals=traces,
         freq_band=freq_band2,
@@ -163,6 +152,7 @@ def detect_hvs_epochs(
         fs=signal.sampling_rate,
         sigma=sigma,
         ignore_times=ignore_times,
+        custom_z_params=custom_z_params_low,
     )
     epochs_low = epochs_low.shift(dt=signal.t_start)
 
@@ -225,8 +215,36 @@ def plot_hvs_epochs(epochs, ax=None, color='red', alpha=0.5, label='HVS'):
 # plot_hvs_epochs(hvs_epochs)
 # plt.show()
 # plot_hvs_epochs(hvs_epochs)
+chan_dict = {
+    "Rey":   {"Saline1": 21, "Psilocybin": 21, "Saline2": 21},
+    "Finn":  {"Saline1": 27, "Psilocybin": 27, "Saline2": 27},
+    "Rose":  {"Saline1": 26, "Psilocybin": 26, "Saline2": 26},
+    "Finn2": {"Saline1": 4,  "Psilocybin": 4,  "Saline2": 4}
+}
+
+thresh_dict = {"Rey": {"highfreq":(346.5527955361546, 246.92799) , "lowfreq":(617.5686995126275, 421.1154)},
+               "Finn": {"highfreq":(269.4066420423166, 102.71449278500276) , "lowfreq":(480.8666986901205, 182.14602700277135)},
+               "Rose": {"highfreq":(293.2885785294905, 114.54823974511558) , "lowfreq":(548.8341587930113, 203.51271279407493)},
+               "Finn2": {"highfreq":(248.90551936756438, 106.48209801305025) , "lowfreq":(448.4746335220534, 180.20309521763303)}
+                       }
+
+animal_name = "Finn2"
+session_name = "Saline2"
+animal_dir = subjects.get_psi_dir(animal_name, session_name)
+# fig, ax = plt.subplots(1, 3, figsize=(11.3, 1.2))
+# fig.suptitle(animal_name)
+# ax[0].set_title("Saline1")
+# ax[1].set_title("Psilocybin")
+# ax[2].set_title("Saline2")
+
+xml_file = sorted(animal_dir.glob("*.xml"))[0]
 
 thresh2 = (4, None)
+custom_z_params_high = thresh_dict[animal_name]["highfreq"]
+custom_z_params_low = thresh_dict[animal_name]["lowfreq"]
+
+# custom_z_params_high = (248.90551936756438, 106.48209801305025) # For Saline1
+# custom_z_params_low = (448.4746335220534, 180.20309521763303) # For Saline1
 recinfo = NeuroscopeIO(xml_file)
 eeg_file = recinfo.eeg_filename
 
@@ -234,15 +252,24 @@ eeg_file = recinfo.eeg_filename
 pyr_channel = chan_dict[animal_name]["Psilocybin"]
 # loader = BinarysignalIO(r'D:\data\Nat\Psilocybin\Recording_Rats\Finn\2022_02_17_psilocybin\2022_02_17_psilocybin.eeg', dtype="int16", n_channels=35, sampling_rate=1250)
 # signal = loader.get_signal(channel_indx=pyr_channel)
-eegfile = BinarysignalIO(recinfo.eeg_filename, dtype="int16", n_channels=recinfo.n_channels, sampling_rate=recinfo.eeg_sampling_rate)
+eegfile = BinarysignalIO(recinfo.eeg_filename, dtype="int16", n_channels=recinfo.n_channels,
+                         sampling_rate=recinfo.eeg_sampling_rate)
 signal = eegfile.get_signal(channel_indx=pyr_channel)
 
 # Load in artifact.npy file for each session as "art_epochs"
 art_epochs = Epoch(epochs=None, file=sorted(animal_dir.glob("*.artifact.npy"))[0])
-hvs_epochs = detect_hvs_epochs(signal, ignore_epochs=art_epochs, thresh2=thresh2)
+hvs_epochs = detect_hvs_epochs(signal, ignore_epochs=art_epochs, thresh2=thresh2, custom_z_params_low=custom_z_params_low,
+                               custom_z_params_high=custom_z_params_high)
+hvs_epochs.save(recinfo.eeg_filename.with_suffix(".hvs_epochs.npy"))  # save to .npy file for NeuroPy
 recinfo.write_epochs(hvs_epochs, f'hv{thresh2[0]}')
 
 plot_hvs_epochs(hvs_epochs)
 plt.show()
 
-
+# # Plot using seaborn stripplot
+# plt.figure(figsize=(10, 6))
+# sns.stripplot(data=df, x="session", y="total_hvs_time", hue="animal", dodge=True)
+# plt.title("Total HVS Time in First Hour Post-Injection")
+# plt.xlabel("Session")
+# plt.ylabel("Total HVS Time (seconds)")
+# plt.legend(title="Animal")
