@@ -6,11 +6,13 @@ from neuropy.io.neuroscopeio import NeuroscopeIO
 
 # Channel dictionary from HVS_Detection.py
 chan_dict = {
-    "Rey":   {"Saline1": 21, "Psilocybin": 21, "Saline2": 21},
     "Finn":  {"Saline1": 27, "Psilocybin": 27, "Saline2": 27},
+    "Rey":   {"Saline1": 21, "Psilocybin": 21, "Saline2": 21},
     "Rose":  {"Saline1": 26, "Psilocybin": 26, "Saline2": 26},
     "Finn2": {"Saline1": 4,  "Psilocybin": 4,  "Saline2": 4}
 }
+
+hvfile_dict = {"Rey": "hv4", "Finn": "hv4", "Rose": "hv4", "Finn2": "hv4"}
 
 # Date dictionary - UPDATE THESE FOR EACH ANIMAL AS NEEDED
 date_dict = {
@@ -48,32 +50,49 @@ for animal in animals:
         session_lower = session.lower()
         base_path = rf"D:\data\Nat\Psilocybin\Recording_Rats\{animal}\{date}_{session_lower}"
 
+        print(f"Processing {animal} {session}: {base_path}")
+
         # Find HVS epochs file using glob
         base_dir = Path(base_path)
-        evt_files = sorted(base_dir.glob("hv*.evt"))
-        if not evt_files:
-            print(f"Warning: No hv*.evt files found in {base_path}")
+        # all_evt_files = sorted(base_dir.glob("*.evt*"))
+        # evt_files = [f for f in all_evt_files if "hv" in f.name]
+        # print(f"Found evt files: {all_evt_files}")
+        # print(f"Filtered HVS evt files: {evt_files}")
+        # if not evt_files:
+        #     print(f"Warning: No HVS evt files found in {base_path}")
+        #     continue
+        # evt_file = evt_files[0]  # Use the first HVS evt file found
+        evt_file = sorted(base_dir.glob(f"*.evt.{hvfile_dict[animal]}"))[0]
+
+        try:
+            # Load HVS epochs
+            hvs_epochs = NeuroscopeIO.event_to_epochs(evt_file)
+            print(f"Loaded HVS epochs: {len(hvs_epochs)} epochs")
+
+            # Filter to first hour (0-3600 seconds)
+            hvs_first_hour = hvs_epochs.time_slice(0, 3600)
+            print(f"First hour epochs: {len(hvs_first_hour)} epochs")
+
+            # Sum durations
+            total_hvs_time = hvs_first_hour.durations.sum()
+            print(f"Total HVS time: {total_hvs_time}")
+
+            # Append to data
+            data.append({
+                "animal": animal,
+                "session": session_lower,
+                "total_hvs_time": total_hvs_time
+            })
+        except Exception as e:
+            print(f"Error processing {evt_file}: {e}")
             continue
-        evt_file = evt_files[0]  # Use the first hv*.evt file found
 
-        # Load HVS epochs
-        hvs_epochs = NeuroscopeIO.event_to_epochs(evt_file)
-
-        # Filter to first hour (0-3600 seconds)
-        hvs_first_hour = hvs_epochs.time_slice(0, 3600)
-
-        # Sum durations
-        total_hvs_time = hvs_first_hour.durations.sum()
-
-        # Append to data
-        data.append({
-            "animal": animal,
-            "session": session_lower,
-            "total_hvs_time": total_hvs_time
-        })
+print(f"Collected data for {len(data)} entries")
 
 # Create DataFrame
 df = pd.DataFrame(data)
+print(f"DataFrame shape: {df.shape}")
+print(df.head())
 
 # Plot using seaborn stripplot
 plt.figure(figsize=(10, 6))
