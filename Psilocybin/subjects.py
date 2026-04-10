@@ -99,3 +99,7 @@ def get_pyr_ch(animal_name, session_name: str in ["Saline1", "Psilocybin", "Sali
     assert session_name in ["Saline1", "Psilocybin", "Saline2"]
     return chan_dict[animal_name][session_name]
 
+def get_animal_num(animal_name):
+
+    return getattr(RecDir(), animal_name.lower()).animal_num
+
