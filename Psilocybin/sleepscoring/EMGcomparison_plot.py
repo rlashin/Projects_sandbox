@@ -10,6 +10,7 @@ from neuropy.plotting.epochs import plot_hypnogram
 from neuropy.utils.plot_util import match_axis_lims
 import seaborn as sns
 import numpy as np
+from Psilocybin.subjects import get_animal_num
 
 emg_hist_lims = {"Finn": [-0.16, 0.91],
                  "Rey": [-0.27, 0.83],
@@ -19,10 +20,10 @@ nbins = 40
 
 psilocybin_dir = Path(r"D:\data\Nat\Psilocybin\Recording_Rats")
 alt_dir = Path(r"D:\data\Nat\Alternation\Recording_Rats")
-animal_name = "Finn"
+animal_name = "Rey"
 sessions = ["alternation", "psilocybin"]
 fig, ax = plt.subplots(1, 1, figsize=(3.8, 1.9), layout="tight")
-# fig.suptitle("EMG Comparison")
+fig.suptitle(f"Animal {get_animal_num(animal_name)}")
 # ax.set_title("Alternation vs Psilocybin")
 
 for ids, (base_dir, session_type) in enumerate(zip([alt_dir, psilocybin_dir], ["alternation*", "psilocybin"])):
