@@ -1,0 +1,44 @@
+from pathlib import Path
+import matplotlib.pyplot as plt
+plt.rcParams["pdf.fonttype"] = 42
+plt.rcParams["ps.fonttype"] = 42
+plt.rcParams['font.family'] = 'sans-serif'
+plt.rcParams['font.sans-serif'] = ['Arial']
+from Brainstates_ryan import emg_from_LFP
+from neuropy.io.sleepscoremasterio import SleepScoreIO
+from neuropy.plotting.epochs import plot_hypnogram
+from neuropy.utils.plot_util import match_axis_lims
+import seaborn as sns
+import numpy as np
+from Psilocybin.subjects import get_animal_num
+
+emg_hist_lims = {"Finn": [-0.16, 0.91],
+                 "Rey": [-0.27, 0.83],
+                 "Rose": [-0.28, 1],
+                 "Finn2": [-.26, 0.98]}
+nbins = 40
+
+psilocybin_dir = Path(r"D:\data\Nat\Psilocybin\Recording_Rats")
+alt_dir = Path(r"D:\data\Nat\Alternation\Recording_Rats")
+animal_name = "Finn2"
+sessions = ["psilocybin", "saline2"]
+fig, ax = plt.subplots(1, 1, figsize=(3.8, 1.9), layout="tight")
+fig.suptitle(f"Animal {get_animal_num(animal_name)}")
+# ax.set_title("Psilocybin vs Saline2")
+
+for ids, (base_dir, session_type) in enumerate(zip([psilocybin_dir, psilocybin_dir], ["psilocybin", "saline2"])):
+    sess_dir = sorted((base_dir / animal_name).glob(f"*_{session_type}"))[0]
+    sleep = SleepScoreIO(sess_dir)
+    EMG = sleep.read_emg()
+    print(f"min EMG={EMG.pEMG.min()}, max EMG={EMG.pEMG.max()}")
+    emg_min, emg_max = emg_hist_lims[animal_name]
+    alpha = 0.3 if session_type == 'psilocybin' else 0.7
+    ax.hist(EMG['pEMG'], bins=np.linspace(emg_min, emg_max + 1 / nbins, nbins), label=session_type, alpha=alpha)
+    ax.set_xlabel("pEMG")
+    ax.set_ylabel("Count")
+    sns.despine(ax=ax)
+
+# match_axis_lims(ax, "x")
+ax.legend()
+plt.show()
+fig.savefig(psilocybin_dir / f"{animal_name}EMGsaline2comparison.pdf")
