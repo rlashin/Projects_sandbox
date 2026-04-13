@@ -14,10 +14,10 @@ from Psilocybin.subjects import get_animal_num
 # Define directories and animal
 primary_dir = Path(r"D:\data\Nat\Psilocybin\Recording_Rats")
 secondary_dir = Path(r"D:\data\Nat\Alternation\Recording_Rats")
-animal_name = "Finn"
+animal_name = "Rose"
 
 sessions = ["alternation*", "saline1", "psilocybin", "saline2"]
-titles = ["Alternation", "saline1", "Psilocybin", "Saline2"]
+titles = ["Alternation", "Saline1", "Psilocybin", "Saline2"]
 base_dirs = [secondary_dir, primary_dir, primary_dir, primary_dir]
 if animal_name == "Finn2":
     sessions, titles, base_dirs = sessions[1:], titles[1:], base_dirs[1:]
@@ -95,5 +95,5 @@ fig.legend(handles=patches, loc='upper center', bbox_to_anchor=(0.5, 1.02), ncol
 fig.suptitle(f"Animal {get_animal_num(animal_name)}")
 
 # Save the figure
-fig.savefig(primary_dir / f"{animal_name}_scatterplot_Theta.pdf")
+fig.savefig(primary_dir / f"{animal_name}_scatterplot_Theta.pdf", dpi=600)
 plt.show()
