@@ -13,7 +13,9 @@ from Psilocybin.subjects import get_animal_num
 # Define directories and animal
 primary_dir = Path(r"D:\data\Nat\Psilocybin\Recording_Rats")
 secondary_dir = Path(r"D:\data\Nat\Alternation\Recording_Rats")
-animal_name = "Finn"
+animal_name = "Rose"
+
+x_feature, y_feature = "slowwave", "EMG"
 
 # Create figure with four subplots side by side
 fig, ax = plt.subplots(1, 4, figsize=(10, 2.5), layout="tight")
@@ -32,10 +34,10 @@ thresh_dict = {"Finn": {"sw": 1.0212, "theta": 0.5943, "emg": 0.0796},
 sess_dirs = [sorted((base_dir / animal_name).glob(f"*_{session_type}"))[0] for base_dir, session_type in zip(base_dirs, sessions)]
 all_df = pd.concat([SleepScoreIO(sess_dir).read_metrics() for sess_dir in sess_dirs])
 all_df = all_df[all_df['good_time']]
-x_min = all_df['slowwave'].min()
-x_max = all_df['slowwave'].max()
-y_min = all_df['EMG'].min()
-y_max = all_df['EMG'].max()
+x_min = all_df[x_feature].min()
+x_max = all_df[x_feature].max()
+y_min = all_df[y_feature].min()
+y_max = all_df[y_feature].max()
 
 # Loop through sessions and plot scatterplots
 for idx, (base_dir, session_type, title) in enumerate(zip(base_dirs, sessions, titles)):
@@ -67,7 +69,7 @@ for idx, (base_dir, session_type, title) in enumerate(zip(base_dirs, sessions, t
     }
 
     # Plot scatterplot: EMG vs broadband slow wave
-    sns.scatterplot(data=metrics_df, x='slowwave', y='EMG', ax=ax[idx], rasterized=True, alpha=0.8, s=1, hue='sleepstate', palette=palette, legend=False)
+    sns.scatterplot(data=metrics_df, x=x_feature, y=y_feature, ax=ax[idx], rasterized=True, alpha=0.8, s=1, hue='sleepstate', palette=palette, legend=False)
     ax[idx].set_title(title)
     ax[idx].set_xlabel("Broadband Slow Wave")
     ax[idx].set_ylabel("EMG")
@@ -83,12 +85,12 @@ for idx, (base_dir, session_type, title) in enumerate(zip(base_dirs, sessions, t
     ax[idx].axvline(x=thresh_dict[animal_name]['sw'], color='black', linestyle='--')
     ax[idx].axhline(y=thresh_dict[animal_name]['emg'], color='black', linestyle='--')
 
-    # Add custom legend
-    legend_states = ['active', 'rem', 'nrem', 'quiet', 'unknown']
-    patches = [mpatches.Patch(color=palette[state], label=state) for state in legend_states]
-    fig.legend(handles=patches, loc='upper center', bbox_to_anchor=(0.5, 1.02), ncol=len(legend_states))
-    fig.suptitle(f"Animal {get_animal_num(animal_name)}")
+# Add custom legend
+legend_states = ['active', 'rem', 'nrem', 'quiet', 'unknown']
+patches = [mpatches.Patch(color=palette[state], label=state) for state in legend_states]
+fig.legend(handles=patches, loc='upper center', bbox_to_anchor=(0.5, 1.02), ncol=len(legend_states))
+fig.suptitle(f"Animal {get_animal_num(animal_name)}")
 
 # Save the figure
-fig.savefig(primary_dir / f"{animal_name}_scatterplot_SWS.pdf")
+fig.savefig(primary_dir / f"{animal_name}_scatterplot_SWS.pdf", dpi=600)
 plt.show()
