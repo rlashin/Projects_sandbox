@@ -112,4 +112,5 @@ else:
     plt.xlabel("Session")
     plt.ylabel("Proportion of Time in HVS (%)")
     plt.legend(title="Animal")
+    plt.savefig(Path(r"D:\data\Nat\Psilocybin\Recording_Rats") / "HVSTotalPlot.pdf")
     plt.show()
