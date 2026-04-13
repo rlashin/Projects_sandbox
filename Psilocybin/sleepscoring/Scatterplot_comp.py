@@ -47,11 +47,13 @@ class SleepScoreMetricsIO:
 
         # Make into DataFrame
         # Subfields: broadbandslowwave_raw, thratio_raw, motiondata_raw, t_clus, badtimes, badtimes_TH, recordingname
+
         metrics_df = pd.DataFrame({
             "timestamps": metrics_dict["t_clus"],
             "EMG": metrics_dict["motiondata_raw"],
             "theta": metrics_dict["thratio_raw"],
-            "slowwave": metrics_dict["broadbandSlowWave_raw"]
+            "slowwave": metrics_dict["broadbandSlowWave_raw"],
+            # "badtimes": badtimes_bool
         })
 
         return metrics_df
