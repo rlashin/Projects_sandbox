@@ -9,13 +9,14 @@ from neuropy.plotting.epochs import plot_hypnogram
 from neuropy.core.epoch import Epoch
 from neuropy.utils.plot_util import match_axis_lims
 import seaborn as sns
+from Psilocybin.subjects import get_animal_num
 
 rec_dir = Path(r"D:\data\Nat\Psilocybin\Recording_Rats")
 sessions = ["saline1", "psilocybin", "saline2"]
-animal_name = "Rey"
+animal_name = "Finn2"
 animal_dir = rec_dir / animal_name
 fig, ax = plt.subplots(1, 3, figsize=(11.3, 1.2))
-fig.suptitle(animal_name)
+fig.suptitle(f"Animal {get_animal_num(animal_name)}")
 ax[0].set_title("Saline1")
 ax[1].set_title("Psilocybin")
 ax[2].set_title("Saline2")
@@ -45,4 +46,4 @@ for ids, session_name in enumerate(sessions):
 
 match_axis_lims(ax, "x")
 plt.show()
-fig.savefig(animal_dir / f"{animal_name}_hypnograms.pdf")
+fig.savefig(animal_dir / f"{animal_name}_hypnogramsnew.pdf")
