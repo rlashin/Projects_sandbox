@@ -5,6 +5,7 @@ from pathlib import Path
 from neuropy.io.neuroscopeio import NeuroscopeIO
 from neuropy.io.binarysignalio import BinarysignalIO
 from neuropy.core import Epoch
+from Psilocybin.subjects import get_animal_num
 
 # Channel dictionary from HVS_Detection.py
 chan_dict = {
@@ -88,6 +89,7 @@ for animal in animals:
             # Append to data
             data.append({
                 "animal": animal,
+                "animal_num": get_animal_num(animal),
                 "session": session_lower,
                 "proportion": proportion
             })
@@ -107,10 +109,12 @@ if df.empty:
     print("No data collected to plot")
 else:
     plt.figure(figsize=(10, 6))
-    sns.stripplot(data=df, x="session", y="proportion", hue="animal", dodge=True)
+    # Define custom palette for more distinct colors
+    custom_palette = {1: 'blue', 2: 'red', 3: 'green', 4: 'orange'}
+    sns.stripplot(data=df, x="session", y="proportion", hue="animal_num", dodge=True, palette=custom_palette)
     plt.title("Proportion of Time Spent in HVS")
     plt.xlabel("Session")
     plt.ylabel("Proportion of Time in HVS (%)")
-    plt.legend(title="Animal")
+    plt.legend(title="Animal Number")
     plt.savefig(Path(r"D:\data\Nat\Psilocybin\Recording_Rats") / "HVSTotalPlot.pdf")
     plt.show()
