@@ -6,6 +6,10 @@ from neuropy.io.neuroscopeio import NeuroscopeIO
 from neuropy.io.binarysignalio import BinarysignalIO
 from neuropy.core import Epoch
 from Psilocybin.subjects import get_animal_num
+plt.rcParams["pdf.fonttype"] = 42
+plt.rcParams["ps.fonttype"] = 42
+plt.rcParams['font.family'] = 'sans-serif'
+plt.rcParams['font.sans-serif'] = ['Arial']
 
 # Channel dictionary from HVS_Detection.py
 chan_dict = {
@@ -116,5 +120,6 @@ else:
     plt.xlabel("Session")
     plt.ylabel("Proportion of Time in HVS (%)")
     plt.legend(title="Animal Number")
+    sns.despine(ax=plt.gca())
     plt.savefig(Path(r"D:\data\Nat\Psilocybin\Recording_Rats") / "HVSTotalPlot.pdf")
     plt.show()
