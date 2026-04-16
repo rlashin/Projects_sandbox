@@ -5,45 +5,35 @@ import numpy as np
 from pathlib import Path
 from neuropy.io.sleepscoremasterio import SleepScoreIO
 from neuropy.core import Epoch
+from Psilocybin.subjects import get_animal_num
+plt.rcParams["pdf.fonttype"] = 42
+plt.rcParams["ps.fonttype"] = 42
+plt.rcParams['font.family'] = 'sans-serif'
+plt.rcParams['font.sans-serif'] = ['Arial']
 
-# Date dictionary - UPDATE THESE FOR EACH ANIMAL AS NEEDED
-date_dict = {
-    "Rey": {
-        "saline1": "2022_06_01",
-        "psilocybin": "2022_06_02",
-        "saline2": "2022_06_03"
-    },
-    "Finn": {
-        "saline1": "2022_02_15",
-        "psilocybin": "2022_02_17",
-        "saline2": "2022_02_18"
-    },
-    "Rose": {
-        "saline1": "2022_08_09",
-        "psilocybin": "2022_08_10",
-        "saline2": "2022_08_11"
-    },
-    "Finn2": {
-        "saline1": "2023_05_24",
-        "psilocybin": "2023_05_25",
-        "saline2": "2023_05_26"
-    }
-}
+# Define directories
+primary_dir = Path(r"D:\data\Nat\Psilocybin\Recording_Rats")
+secondary_dir = Path(r"D:\data\Nat\Alternation\Recording_Rats")
 
-# List of animals and sessions
+# List of animals
 animals = ["Rey", "Finn", "Rose", "Finn2"]
-sessions = ["saline1", "psilocybin", "saline2"]
 
 # Collect data
 data = []
 for animal in animals:
-    for session in sessions:
-        date = date_dict[animal][session]
-        base_path = rf"D:\data\Nat\Psilocybin\Recording_Rats\{animal}\{date}_{session}"
+    # Define sessions and base_dirs based on animal
+    sessions = ["alternation*", "psilocybin", "saline2"]
+    session_labels = ["Alternation", "Psilocybin", "Saline2"]
+    base_dirs = [secondary_dir, primary_dir, primary_dir]
+    if animal == "Finn2":
+        sessions = sessions[1:]
+        session_labels = session_labels[1:]
+        base_dirs = base_dirs[1:]
 
-        print(f"Processing {animal} {session}: {base_path}")
+    for idx, session in enumerate(sessions):
+        base_dir = sorted((base_dirs[idx] / animal).glob(f"*_{session}"))[0]
 
-        base_dir = Path(base_path)
+        print(f"Processing {animal} {session_labels[idx]}: {base_dir}")
 
         try:
             # Load sleep states
@@ -58,33 +48,40 @@ for animal in animals:
                 print(f"Injection time: {inj_time} seconds")
             except IndexError:
                 print(f"injection.npy not found in {base_dir}")
-                inj_time = None
+                if session_labels[idx] == "Alternation":
+                    inj_time = 0  # For alternation, use session start as reference
+                    print("Using session start (0) as reference for Alternation")
+                else:
+                    inj_time = None
 
-            # Find latency to first NREM after injection
+            # Find latency to first NREM after reference time (only NREM >=60 seconds)
             if 'nrem' in brainstates.labels and inj_time is not None:
-                nrem_starts = brainstates['nrem'].starts
-                post_inj_starts = nrem_starts[nrem_starts >= inj_time]
-                if len(post_inj_starts) > 0:
-                    first_onset = post_inj_starts.min() - inj_time  # Latency in seconds
-                    print(f"Latency to first NREM after injection: {first_onset} seconds")
+                nrem_epochs = brainstates['nrem']
+                post_ref_mask = nrem_epochs.starts >= inj_time
+                long_mask = nrem_epochs.durations >= 60
+                valid_nrem_starts = nrem_epochs.starts[post_ref_mask & long_mask]
+                if len(valid_nrem_starts) > 0:
+                    first_onset = valid_nrem_starts.min() - inj_time  # Latency in seconds
+                    print(f"Time to first NREM (>=60s): {first_onset} seconds")
                 else:
                     first_onset = np.nan
-                    print("No NREM after injection")
+                    print("No NREM (>=60s) found")
             else:
                 first_onset = np.nan
                 if 'nrem' not in brainstates.labels:
                     print("No NREM epochs found")
                 if inj_time is None:
-                    print("No injection time found")
+                    print("No reference time found")
 
             # Append to data
             data.append({
                 "animal": animal,
-                "session": session,
+                "animal_num": get_animal_num(animal),
+                "session": session_labels[idx],
                 "onset_time": first_onset
             })
         except Exception as e:
-            print(f"Error processing {base_path}: {e}")
+            print(f"Error processing {base_dir}: {e}")
             continue
 
 print(f"Collected data for {len(data)} entries")
@@ -98,11 +95,14 @@ print(df.head())
 if df.empty:
     print("No data collected to plot")
 else:
-    plt.figure(figsize=(10, 6))
-    sns.stripplot(data=df, x="session", y="onset_time", hue="animal", dodge=True)
-    plt.title("Latency to First NREM Sleep Onset After Injection")
+    plt.figure(figsize=(3, 3), layout='tight')
+    # Define custom palette for more distinct colors
+    custom_palette = {1: 'blue', 2: 'red', 3: 'green', 4: 'orange'}
+    sns.stripplot(data=df, x="session", y="onset_time", hue="animal_num", dodge=True, palette=custom_palette)
+    plt.title("Time to First NREM Sleep Onset (>=60s)")
     plt.xlabel("Session")
-    plt.ylabel("Latency (seconds)")
-    plt.legend(title="Animal")
+    plt.ylabel("Time (seconds)")
+    plt.legend(title="Animal Number")
+    sns.despine(ax=plt.gca())
     plt.savefig(Path(r"D:\data\Nat\Psilocybin\Recording_Rats") / "SleepOnset_time.pdf")
     plt.show()
