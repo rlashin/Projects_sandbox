@@ -58,11 +58,11 @@ for animal in animals:
             if 'nrem' in brainstates.labels and inj_time is not None:
                 nrem_epochs = brainstates['nrem']
                 post_ref_mask = nrem_epochs.starts >= inj_time
-                long_mask = nrem_epochs.durations >= 60
+                long_mask = nrem_epochs.durations >= 30
                 valid_nrem_starts = nrem_epochs.starts[post_ref_mask & long_mask]
                 if len(valid_nrem_starts) > 0:
                     first_onset = valid_nrem_starts.min() - inj_time  # Latency in seconds
-                    print(f"Time to first NREM (>=60s): {first_onset} seconds")
+                    print(f"Time to first NREM (>=30s): {first_onset} seconds")
                 else:
                     first_onset = np.nan
                     print("No NREM (>=60s) found")
@@ -91,17 +91,20 @@ df = pd.DataFrame(data)
 print(f"DataFrame shape: {df.shape}")
 print(df.head())
 
+# Convert onset_time to minutes
+df['onset_time'] = df['onset_time'] / 60
+
 # Plot using seaborn stripplot
 if df.empty:
     print("No data collected to plot")
 else:
-    plt.figure(figsize=(3, 3), layout='tight')
+    plt.figure(figsize=(8, 6), layout='tight')
     # Define custom palette for more distinct colors
     custom_palette = {1: 'blue', 2: 'red', 3: 'green', 4: 'orange'}
     sns.stripplot(data=df, x="session", y="onset_time", hue="animal_num", dodge=True, palette=custom_palette)
-    plt.title("Time to First NREM Sleep Onset (>=60s)")
+    plt.title("Time to First NREM Sleep Onset (>=30s)")
     plt.xlabel("Session")
-    plt.ylabel("Time (seconds)")
+    plt.ylabel("Time (minutes)")
     plt.legend(title="Animal Number")
     sns.despine(ax=plt.gca())
     plt.savefig(Path(r"D:\data\Nat\Psilocybin\Recording_Rats") / "SleepOnset_time.pdf")
