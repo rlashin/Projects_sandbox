@@ -3,6 +3,11 @@ import seaborn as sns
 import matplotlib.pyplot as plt
 from pathlib import Path
 from neuropy.io.neuroscopeio import NeuroscopeIO
+from Psilocybin.subjects import get_animal_num
+plt.rcParams["pdf.fonttype"] = 42
+plt.rcParams["ps.fonttype"] = 42
+plt.rcParams['font.family'] = 'sans-serif'
+plt.rcParams['font.sans-serif'] = ['Arial']
 
 # Channel dictionary from HVS_Detection.py
 chan_dict = {
@@ -80,6 +85,7 @@ for animal in animals:
             # Append to data
             data.append({
                 "animal": animal,
+                "animal_num": get_animal_num(animal),
                 "session": session_lower,
                 "total_hvs_time": total_hvs_time
             })
@@ -96,9 +102,13 @@ print(df.head())
 
 # Plot using seaborn stripplot
 plt.figure(figsize=(10, 6))
-sns.stripplot(data=df, x="session", y="total_hvs_time", hue="animal", dodge=True)
+# Define custom palette for more distinct colors
+custom_palette = {1: 'blue', 2: 'red', 3: 'green', 4: 'orange'}
+sns.stripplot(data=df, x="session", y="total_hvs_time", hue="animal_num", dodge=True, palette=custom_palette)
 plt.title("Total HVS Time in First Hour Post-Injection")
 plt.xlabel("Session")
 plt.ylabel("Total HVS Time (seconds)")
-plt.legend(title="Animal")
+sns.despine(ax=plt.gca())
+plt.legend(title="Animal Number")
+plt.savefig(Path(r"D:\data\Nat\Psilocybin\Recording_Rats") / "HVSPlot.pdf")
 plt.show()
