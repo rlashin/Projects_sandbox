@@ -8,14 +8,15 @@ from neuropy.io.sleepscoremasterio import SleepScoreIO
 from neuropy.plotting.epochs import plot_hypnogram
 from neuropy.utils.plot_util import match_axis_lims
 import seaborn as sns
+from Psilocybin.subjects import get_animal_num
 alt_dir = Path(r"D:\data\Nat\Alternation\Recording_Rats")
 session_name = "alternation"
 animal_names = ["Finn", "Rey", "Rose"]
 fig, ax = plt.subplots(1, 3, figsize=(11.3, 1.2))
 fig.suptitle("Alternation")
-ax[0].set_title("Finn")
-ax[1].set_title("Rey")
-ax[2].set_title("Rose")
+ax[0].set_title(f"Animal {get_animal_num('Finn')}")
+ax[1].set_title(f"Animal {get_animal_num('Rey')}")
+ax[2].set_title(f"Animal {get_animal_num('Rose')}")
 for ids, animal_name in enumerate(animal_names):
     base_dir = sorted((alt_dir / animal_name).glob(f"*_{session_name}*"))[0]
     sleep = SleepScoreIO(base_dir)
