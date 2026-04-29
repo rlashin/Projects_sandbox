@@ -123,7 +123,7 @@ def detect_hvs_epochs(
         ignore_times = None
 
     # Detect spindles in high frequency band (10-20 Hz)
-    print(f"Detecing {freq_band[0]}-{freq_band[1]} Hz events")
+    print(f"Detecting {freq_band[0]}-{freq_band[1]} Hz events")
     epochs_high = _detect_freq_band_epochs(
         signals=traces,
         freq_band=freq_band,
